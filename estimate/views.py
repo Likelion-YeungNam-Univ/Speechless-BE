@@ -16,7 +16,14 @@ from .serializers import EstimateDetailSerializer, EstimateListSerializer, Estim
 
 class EstimateViewSet(viewsets.ModelViewSet):
     queryset = Estimate.objects.all()
-
+    permission_classes_by_action = {
+        'create': [IsAuthenticated],
+        'retrieve': [AllowAny],
+        'update': [IsAuthenticated],
+        'list': [AllowAny],
+        'destroy': [IsAuthenticated],
+    }
+                                    
     def get_serializer_class(self):
         if self.action == 'create':
             print("create 호출됐네!")
@@ -33,26 +40,11 @@ class EstimateViewSet(viewsets.ModelViewSet):
             # 잘못된 요청임을 알리는 예외 발생
             raise exceptions.MethodNotAllowed(self.request.method)
 
-    def get_permissions(self):
-        if self.action == 'create':
-            return [IsAuthenticated()]
-        elif self.action == 'retrieve':
-            return [AllowAny()]
-        elif self.action == 'update' :
-            return [IsAuthenticated()]
-        elif self.action == 'list' :
-            return [AllowAny()]
-        elif self.action == 'destroy' :
-            return [IsAuthenticated()]
-        else:
-            return [AllowAny()]
-        
-
     def update(self, request, *args, **kwargs):
         user = request.user
         if request.user != None:
             # jwt토큰 payload에 있는 user_id가 self object의 user_info 필드의 user_id와 같은지 비교.
-            if user.user_id == self.get_object().user_info.user_id:
+            if user.user_id == int(kwargs['pk']):
                 return super().update(request, *args, **kwargs)
             else :
                 raise exceptions.PermissionDenied('수정 권한이 없습니다.')
@@ -63,7 +55,7 @@ class EstimateViewSet(viewsets.ModelViewSet):
         user = request.user
         if request.user != None:
             # jwt토큰 payload에 있는 user_id가 self object의 user_info 필드의 user_id와 같은지 비교.
-            if user.user_id == self.get_object().user_info.user_id:
+            if user.user_id == int(kwargs['pk']):
                 return super().destroy(request, *args, **kwargs)
             else :
                 raise exceptions.PermissionDenied('삭제 권한이 없습니다.')
