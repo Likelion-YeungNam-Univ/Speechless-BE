@@ -1,10 +1,15 @@
 # drf 관련 라이브러리
 from rest_framework import viewsets
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password
 from rest_framework import exceptions
 from .models import Notification, Review, Message
 from .serializers import NotificationSerializer, ReviewSerializer, MessageSerializer
+from rest_framework import status
 
+# swagger
+from drf_yasg.utils import swagger_auto_schema
 
 # drf 권한 관련 라이브러리
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
@@ -12,7 +17,7 @@ from .authentication import JWTAuthentication
 
 # serializers.py
 from .serializers import UserSerializer, UserCreateSerializer, UserInfoSerializer
-
+from .serializers import EmailFindSerializer, IdReturnSerializer
 
 # User 모델
 from django.contrib.auth import get_user_model, authenticate
@@ -89,6 +94,37 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
 
 #쪽지
-class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all()
-    serializer_class = MessageSerializer
+# class MessageView(APIView):
+#     def post(self, request):
+#         # msg_serializer = 
+#         pass
+
+class SentMessageView(APIView):
+    def get(self, request):
+        messages = Message.objects.filter(sender=request.user)
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+class ReceivedMessageView(APIView):
+    def get(self, request):
+        messages = Message.objects.filter(receiver=request.user)
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+    
+
+class EmailIdFindView(APIView):
+    @swagger_auto_schema(request_body=EmailFindSerializer)
+    def post(self, request):
+        permission_classes = [AllowAny]
+        serializer = EmailFindSerializer(data=request.data)
+        if serializer.is_valid():
+            if User.objects.filter(email = request.data['email']).exists():
+                user = User.objects.get(email = request.data['email'])
+                response_serializer = IdReturnSerializer(user)
+                return Response(response_serializer.data, status=status.HTTP_200_OK)
+            else :
+                return Response({
+                    "error" : "해당 이메일로 가입된 아이디가 없습니다."
+                }, status = status.HTTP_400_BAD_REQUEST)
+        else :
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
