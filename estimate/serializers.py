@@ -36,7 +36,7 @@ class EstimateListSerializer(serializers.ModelSerializer):
 
 # 견적 상세 시리얼라이저
 class EstimateDetailSerializer(serializers.ModelSerializer):
-    user_info = UserSerializer(read_only = True)
+    user_info = UserSerializer(source='user_id', read_only = True)
 
     class Meta:
         model = Estimate
@@ -71,6 +71,7 @@ class EstimateCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('로그인이 필요합니다.')
         # print("호출된 유저 id",user.user_id)
         # estimate 오브젝트 생성 (user_id 필드에는 user 오브젝트 넣어준다.)
+        print("validated_data",validated_data)
         estimate = Estimate.objects.create(user_id=user, **validated_data)
         return estimate
 
